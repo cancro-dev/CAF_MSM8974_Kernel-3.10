@@ -18,6 +18,9 @@
 #include <linux/wakelock.h>
 #include <linux/jiffies.h>
 #include <linux/sched.h>
+#ifdef CONFIG_SND_SOC_CS35L32
+#include <linux/device.h>
+#endif
 #include <linux/msm_audio_ion.h>
 #include <linux/delay.h>
 #include <sound/apr_audio-v2.h>
@@ -25,6 +28,10 @@
 #include <sound/q6audio-v2.h>
 #include "msm-pcm-routing-v2.h"
 #include <sound/audio_cal_utils.h>
+
+#ifdef CONFIG_SND_SOC_DYBOOST
+#include <../../codecs/tas2552.h>
+#endif
 
 #define WAKELOCK_TIMEOUT	5000
 enum {
@@ -65,6 +72,16 @@ enum {
 	QUICK_CALIB_DISABLE,
 	QUICK_CALIB_ENABLE
 };
+
+
+#ifdef CONFIG_SND_TI_SPK_PROT_OPALUM
+#ifdef CONFIG_SND_SOC_SPKINFO
+int32_t opalum_excursion_model[3] = {0, };
+#else
+int32_t opalum_excursion_model[2] = {0, };
+#endif
+int32_t opalum_current_temperature[2] = {0, };
+#endif
 
 struct wlock {
 	struct wakeup_source ws;
@@ -153,6 +170,26 @@ static void afe_callback_debug_print(struct apr_client_data *data)
 			__func__, data->opcode, data->payload_size);
 }
 
+#ifdef CONFIG_SND_TI_SPK_PROT_OPALUM
+extern int check_reg_cmd;
+unsigned int *payload_check_reg_cmd = NULL;
+extern struct work_struct work_queue_boost;
+#endif
+
+#ifdef CONFIG_SND_SOC_DYBOOST
+unsigned int *payload_protection_boost = NULL;
+extern int boost_command;
+extern struct work_struct work_queue_boost;
+#endif
+
+#ifdef CONFIG_SND_SOC_SPKINFO
+unsigned int over_temp_data[2] = {0, };
+unsigned int *payload_protection = NULL;
+extern struct work_struct work_queue;
+extern wait_queue_head_t myevent_wq;
+extern rwlock_t myevent_lock;
+#endif
+
 static int32_t afe_callback(struct apr_client_data *data, void *priv)
 {
 	if (!data) {
@@ -182,9 +219,69 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 		return 0;
 	}
 	afe_callback_debug_print(data);
+#ifdef CONFIG_SND_TI_SPK_PROT_OPALUM
+        /* be got spk temp data from OSPL(ADSP) when is playing music */
+	if (data->opcode == AFE_DATA_EVENT_STATUS)
+	{
+	    //send cmd to tas driver for reg check
+		payload_check_reg_cmd = (unsigned int *)data->payload;
+		check_reg_cmd = payload_check_reg_cmd[0];
+		schedule_work(&work_queue_boost);
+
+		#ifdef CONFIG_SND_SOC_SPKINFO
+	      	write_lock(&myevent_lock);
+	      	payload_protection = (unsigned int *)data->payload;
+	      	over_temp_data[0] = payload_protection[0];
+		over_temp_data[1] = payload_protection[1];
+	      	pr_debug("spk temp: data1 = 0x%x data2:0x%x \n",
+		      payload_protection[0], payload_protection[1]);
+	      	write_unlock(&myevent_lock);
+	      	wake_up_interruptible(&myevent_wq);
+		#else
+		pr_debug("get AFE_DATA_EVENT_STATUS:0x%x \n",AFE_DATA_EVENT_STATUS);
+		#endif
+	}
+#ifdef CONFIG_SND_SOC_DYBOOST
+	if (data->opcode == 0xF0012B04)
+	{
+	      payload_protection_boost = (unsigned int *)data->payload;
+	      /*pr_err("op_code = 0x%x boost_cmd: 0x%x data2:0x%x \n",
+		      data->opcode, payload_protection_boost[0], payload_protection_boost[1]);
+		*/
+	      boost_command = payload_protection_boost[0];
+	      schedule_work(&work_queue_boost);
+	}
+#endif
+#endif
 	if (data->opcode == AFE_PORT_CMDRSP_GET_PARAM_V2) {
 		u8 *payload = data->payload;
-
+#ifdef CONFIG_SND_TI_SPK_PROT_OPALUM
+        uint32_t* payload32 = data->payload;
+        pr_debug("opalum get param opcode = 0x%x, payload32[1]:0x%x \n", data->opcode,payload32[1]);
+	/* Callback for Opalum communication */
+	if(payload32[1] == RX_MODULE)
+	{
+		switch(payload32[2]) // payload32[2] contains the parameter ID
+		{
+			case EXCURSION_DATA:
+				opalum_excursion_model[0] = (int32_t)payload32[4]; // This is the left channel excursion model
+				opalum_excursion_model[1] = (int32_t)payload32[5]; // This is the right channel excursion model
+				#ifdef CONFIG_SND_SOC_SPKINFO
+				opalum_excursion_model[2] = (int32_t)payload32[6]; // it means rx porcess end
+				#endif
+				break;
+			case TEMPERATURE_DATA:
+				opalum_current_temperature[0] = (int32_t)payload32[4]; // This is the left channel temperature
+				opalum_current_temperature[1] = (int32_t)payload32[5]; // This is the right channel temperature
+				break;
+			default:
+				break;
+		}
+		 pr_debug("@@@payload32[4]:0x%x, palyoad32[5]:0x%x", payload32[4], payload32[5]);
+		 atomic_set(&this_afe.state, 0);
+	} else
+	{
+#endif
 		if (rtac_make_afe_callback(data->payload, data->payload_size))
 			return 0;
 
@@ -206,6 +303,9 @@ static int32_t afe_callback(struct apr_client_data *data, void *priv)
 		} else
 			atomic_set(&this_afe.state, -1);
 		wake_up(&this_afe.wait[data->token]);
+#ifdef CONFIG_SND_TI_SPK_PROT_OPALUM
+}
+#endif
 	} else if (data->payload_size) {
 		uint32_t *payload;
 		uint16_t port_id = 0;
@@ -375,6 +475,10 @@ int afe_sizeof_cfg_cmd(u16 port_id)
 	case AFE_PORT_ID_PRIMARY_MI2S_TX:
 	case AFE_PORT_ID_QUATERNARY_MI2S_RX:
 	case AFE_PORT_ID_QUATERNARY_MI2S_TX:
+#ifdef CONFIG_SND_USE_TERT_MI2S
+	case AFE_PORT_ID_TERTIARY_MI2S_RX:
+	case AFE_PORT_ID_TERTIARY_MI2S_TX:
+#endif
 		ret_size = SIZEOF_CFG_CMD(afe_param_id_i2s_cfg);
 		break;
 	case HDMI_RX:
@@ -3447,6 +3551,9 @@ int afe_validate_port(u16 port_id)
 	case AFE_PORT_ID_SECONDARY_MI2S_RX:
 	case AFE_PORT_ID_QUATERNARY_MI2S_RX:
 	case AFE_PORT_ID_QUATERNARY_MI2S_TX:
+#ifdef CONFIG_SND_USE_TERT_MI2S
+	case AFE_PORT_ID_TERTIARY_MI2S_RX:
+#endif
 	case AFE_PORT_ID_TERTIARY_MI2S_TX:
 	{
 		ret = 0;
@@ -4075,7 +4182,72 @@ int afe_spk_prot_feed_back_cfg(int src_port, int dst_port,
 fail_cmd:
 	return ret;
 }
+#ifdef CONFIG_SND_SOC_CS35L32
+int q6afe_set_rtip(int enable)
+{
+	struct afe_rtip_v1 set_param;
+	int ret = 0;
 
+	pr_debug("%s\n", __func__);
+	if (this_afe.apr == NULL) {
+		this_afe.apr = apr_register("ADSP", "AFE",afe_callback,
+					    0xFFFFFFFF, &this_afe);
+		pr_info("%s: Register AFE\n", __func__);
+		if (this_afe.apr == NULL) {
+			pr_err("%s: Unable to register AFE\n",__func__);
+			ret = -ENODEV;
+			return ret;
+		}
+	}
+	set_param.hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD,
+						APR_HDR_LEN(20), APR_PKT_VER);
+
+	set_param.hdr.pkt_size = APR_PKT_SIZE(APR_HDR_SIZE,
+					      sizeof(set_param) - APR_HDR_SIZE);
+	set_param.hdr.src_port = 0;
+	set_param.hdr.dest_port = 0;
+	set_param.hdr.token = 0;
+	set_param.hdr.opcode = AFE_PORT_CMD_SET_PARAM_V2;
+	set_param.param.port_id = AFE_PORT_ID_QUATERNARY_MI2S_TX;
+	set_param.param.payload_size = (sizeof(set_param) - sizeof(struct apr_hdr) -
+				sizeof(struct afe_port_cmd_set_param_v2) -
+				sizeof(struct afe_param_rtip_enable));
+
+	set_param.param.payload_address_lsw = 0;
+	set_param.param.payload_address_msw = 0;
+	set_param.param.mem_map_handle = 0x00;
+	set_param.pdata.module_id = AFE_MODULE_RTIP_ENABLE;
+
+	switch (enable){
+		case 0:
+		case 1:
+			pr_debug("%s: enable/disable the module", __func__);
+			set_param.pdata.param_id = AFE_PARAM_RTIP_ENABLE;
+			set_param.pdata.param_size = sizeof(struct afe_param_rtip_enable);
+			set_param.rtip_t.enable = enable;
+			set_param.rtip_t.reserved = 0;
+		break;
+		case 2:
+		case 3:
+			pr_debug("%s: set/reset debugging of the module", __func__);
+			set_param.pdata.param_id = AFE_PARAM_RTIP_DEBUG;
+			set_param.pdata.param_size = sizeof(struct afe_param_rtip_enable);
+			set_param.rtip_t.enable = enable - 2;
+			set_param.rtip_t.reserved = 0;
+		break;
+		case 4:
+		case 5:
+			pr_debug("%s: set/reset performance monitoring of the module", __func__);
+			set_param.pdata.param_id = AFE_PARAM_RTIP_PERF;
+			set_param.pdata.param_size      = sizeof(struct afe_param_rtip_enable);
+			set_param.rtip_t.enable           = enable - 4;
+			set_param.rtip_t.reserved                 = 0;
+		break;
+		default:
+			return ret;
+	}
+
+<<<<<<< HEAD
 static int get_cal_type_index(int32_t cal_type)
 {
 	int ret = -EINVAL;
@@ -4554,6 +4726,90 @@ int afe_unmap_rtac_block(uint32_t *mem_map_handle)
 done:
 	return result;
 }
+
+=======
+	ret = afe_apr_send_pkt(&set_param, &this_afe.wait[0]);
+	if (ret < 0) {
+		pr_err("%s: AFE enable or disable RTIP failed\n", __func__);
+		ret = -EINVAL;
+		goto fail_cmd;
+	}
+
+	return 0;
+
+    payload = (struct opalum_external_config_t*)((u8*)config + sizeof(struct afe_custom_opalum_set_config_t));
+    payload->total_size = string_size;
+
+    /* Send config string in chunks of maximum 4000 bytes */
+    while(sent < string_size) {
+
+        chars_to_send = string_size - sent;
+        if(chars_to_send > 4000) {
+            chars_to_send = 4000;
+            payload->done = 0;
+        } else {
+            payload->done = 1;
+        }
+
+        /* Configure per message parameter settings */
+        memcpy((&payload->config), cfg_strings + sent, chars_to_send);
+        //memcpy((char*)&payload->config, cfg_strings + sent, chars_to_send);
+        //memcpy((char*)&payload->config, string + sent, chars_to_send);
+
+        payload->chunk_size = chars_to_send;
+
+        /* Set header section */
+        config->hdr.hdr_field = APR_HDR_FIELD(APR_MSG_TYPE_SEQ_CMD, APR_HDR_LEN(APR_HDR_SIZE), APR_PKT_VER);
+        config->hdr.pkt_size = sizeof(struct afe_custom_opalum_set_config_t) + sizeof(struct opalum_external_config_t)+chars_to_send;
+        config->hdr.src_svc = APR_SVC_AFE;
+        config->hdr.src_domain = APR_DOMAIN_APPS;
+        config->hdr.src_port = 0;
+        config->hdr.dest_svc = APR_SVC_AFE;
+        config->hdr.dest_domain = APR_DOMAIN_ADSP;
+        config->hdr.dest_port = 0;
+        config->hdr.token = index;
+        config->hdr.opcode = AFE_PORT_CMD_SET_PARAM_V2;
+
+        /* Set param section */
+        config->param.port_id = port_id;
+        config->param.payload_size = sizeof(struct afe_port_param_data_v2) + sizeof(struct opalum_external_config_t) + chars_to_send;
+        config->param.payload_address_lsw = 0;
+        config->param.payload_address_msw = 0;
+        config->param.mem_map_handle = 0;
+
+        /* Set data section */
+        config->data.module_id = module_id;
+        config->data.param_id = param_id;
+        config->data.param_size = sizeof(struct opalum_external_config_t) + chars_to_send;
+        config->data.reserved = 0; // Must be set to 0
+
+#ifdef DEBUG_OPALUM
+        pr_info("%s: payload->total_size = %d, payload->chunk_size = %d, payload->done =%d ", __func__,
+            payload->total_size, payload->chunk_size, payload->done);
+#endif  // DEBUG_OPALUM
+
+        pr_debug("%s: Preparing to send apr packet.\n", __func__);
+        result = afe_apr_send_pkt(config, &this_afe.wait[index]);
+        if(result) {
+            pr_err("%s: Opalum set_param for port %d failed with code %d\n", __func__, port_id, result);
+        } else {
+#ifdef DEBUG_OPALUM
+            pr_info("%s: Opalum set_param sent packet with param id 0x%08x to module 0x%08x.\n", __func__, param_id, module_id);
+#else
+            pr_debug("%s: Opalum set_param sent packet with param id 0x%08x to module 0x%08x.\n", __func__, param_id, module_id);
+#endif  // DEBUG_OPALUM
+        }
+        sent += chars_to_send;
+    }
+#ifdef DEBUG_OPALUM
+    pr_info("%s: Opalum set_param sent packet size is %d.\n", __func__, sent);
+#endif  // DEBUG_OPALUM
+
+    kfree(config);
+    return result;
+}
+
+#endif  // CONFIG_SND_TI_SPK_PROT_OPALUM
 
 static int __init afe_init(void)
 {

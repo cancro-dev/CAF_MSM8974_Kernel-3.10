@@ -65,7 +65,18 @@ struct qpnp_vib {
 	int vtg_level;
 	int timeout;
 	struct mutex lock;
+#ifdef CONFIG_VIBRATOR_PM8941_HAPTIC
+	int vtg_haptic_level;
+#endif
 };
+
+
+#ifdef CONFIG_MACH_LGE
+struct qpnp_vib *vib_dev;
+EXPORT_SYMBOL(vib_dev);
+#else
+static struct qpnp_vib *vib_dev;
+#endif
 
 static int qpnp_vib_read_u8(struct qpnp_vib *vib, u8 *data, u16 reg)
 {
@@ -141,7 +152,11 @@ static int qpnp_vibrator_config(struct qpnp_vib *vib)
 	return rc;
 }
 
+#ifdef CONFIG_MACH_LGE
+int qpnp_vib_set(struct qpnp_vib *vib, int on)
+#else
 static int qpnp_vib_set(struct qpnp_vib *vib, int on)
+#endif
 {
 	int rc;
 	u8 val;
@@ -174,6 +189,29 @@ static int qpnp_vib_set(struct qpnp_vib *vib, int on)
 
 	return 0;
 }
+#ifdef CONFIG_MACH_LGE
+EXPORT_SYMBOL(qpnp_vib_set);
+#endif
+
+#ifdef CONFIG_VIBRATOR_PM8941_HAPTIC
+static int qpnp_vib_set_level(struct timed_output_dev *dev, int data)
+{
+    struct qpnp_vib *vib = container_of(dev, struct qpnp_vib, timed_dev);
+
+    if (data <= QPNP_VIB_MAX_LEVEL)
+        vib->vtg_haptic_level = data;
+    else
+	vib->vtg_haptic_level = QPNP_VIB_MAX_LEVEL;
+
+    return 0;
+}
+
+static int qpnp_vib_get_level(struct timed_output_dev *dev)
+{
+    struct qpnp_vib *vib = container_of(dev, struct qpnp_vib, timed_dev);
+    return vib->vtg_level;
+}
+#endif
 
 static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 {
@@ -189,6 +227,10 @@ static void qpnp_vib_enable(struct timed_output_dev *dev, int value)
 		value = (value > vib->timeout ?
 				 vib->timeout : value);
 		vib->state = 1;
+
+#ifdef CONFIG_VIBRATOR_PM8941_HAPTIC
+		vib->vtg_level = vib->vtg_haptic_level;
+#endif
 		hrtimer_start(&vib->vib_timer,
 			      ktime_set(value / 1000, (value % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
@@ -337,6 +379,10 @@ static int qpnp_vibrator_probe(struct spmi_device *spmi)
 
 	vib->spmi = spmi;
 
+#ifdef CONFIG_VIBRATOR_PM8941_HAPTIC
+	vib->vtg_haptic_level = vib->vtg_level;
+#endif
+
 	vib_resource = spmi_get_resource(spmi, 0, IORESOURCE_MEM, 0);
 	if (!vib_resource) {
 		dev_err(&spmi->dev, "Unable to get vibrator base address\n");
@@ -365,7 +411,10 @@ static int qpnp_vibrator_probe(struct spmi_device *spmi)
 	vib->timed_dev.name = "vibrator";
 	vib->timed_dev.get_time = qpnp_vib_get_time;
 	vib->timed_dev.enable = qpnp_vib_enable;
-
+#ifdef CONFIG_VIBRATOR_PM8941_HAPTIC
+	vib->timed_dev.set_vtLevel = qpnp_vib_set_level;
+	vib->timed_dev.get_vtLevel = qpnp_vib_get_level;
+#endif
 	dev_set_drvdata(&spmi->dev, vib);
 
 	rc = timed_output_dev_register(&vib->timed_dev);

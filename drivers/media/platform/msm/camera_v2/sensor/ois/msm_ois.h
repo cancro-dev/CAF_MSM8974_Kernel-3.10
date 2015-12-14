@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 /* Copyright (c) 2014-2015, The Linux Foundation. All rights reserved.
+=======
+/* Copyright (c) 2011-2013, The Linux Foundation. All rights reserved.
+>>>>>>> 5b5616e... Add LG G3 Support
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -10,6 +14,7 @@
  * GNU General Public License for more details.
  */
 #ifndef MSM_OIS_H
+<<<<<<< HEAD
 #define MSM_OIS_H
 
 #include <linux/i2c.h>
@@ -20,10 +25,22 @@
 #include "msm_camera_i2c.h"
 #include "msm_camera_dt_util.h"
 #include "msm_camera_io_util.h"
+=======
+#define MSM_OIS_H   
+
+#include <linux/i2c.h>
+#include <linux/gpio.h>
+#include <mach/camera2.h>
+#include <media/v4l2-subdev.h>
+#include <media/msmb_camera.h>
+#include "msm_camera_i2c.h"
+#include "msm_sd.h"
+>>>>>>> 5b5616e... Add LG G3 Support
 
 #define DEFINE_MSM_MUTEX(mutexname) \
 	static struct mutex mutexname = __MUTEX_INITIALIZER(mutexname)
 
+<<<<<<< HEAD
 #define	MSM_OIS_MAX_VREGS (10)
 
 struct msm_ois_ctrl_t;
@@ -39,6 +56,28 @@ struct msm_ois_vreg {
 	struct camera_vreg_t *cam_vreg;
 	void *data[MSM_OIS_MAX_VREGS];
 	int num_vreg;
+=======
+#define OIS_SUCCESS 0
+#define OIS_FAIL    -1
+#define OIS_INIT_OLD_MODULE		1
+#define OIS_INIT_NOT_SUPPORTED  -2
+#define OIS_INIT_CHECKSUM_ERROR -3
+#define OIS_INIT_EEPROM_ERROR   -4
+#define OIS_INIT_I2C_ERROR      -5
+#define OIS_INIT_TIMEOUT		-6
+#define OIS_INIT_LOAD_BIN_ERROR -7
+#define OIS_INIT_NOMEM			-8
+#define OIS_INIT_GYRO_ADJ_FAIL	 2
+#define OIS_INIT_SRV_GAIN_FAIL 	 4
+
+struct msm_ois_fn_t {
+	int (*ois_on) (enum ois_ver_t);
+	int (*ois_off) (void);
+	int (*ois_mode) (enum ois_mode_t);
+	int (*ois_stat) (struct msm_sensor_ois_info_t *);
+	int (*ois_move_lens) (int16_t, int16_t);
+	int ois_cur_mode;
+>>>>>>> 5b5616e... Add LG G3 Support
 };
 
 struct msm_ois_ctrl_t {
@@ -46,6 +85,7 @@ struct msm_ois_ctrl_t {
 	struct platform_driver *pdriver;
 	struct platform_device *pdev;
 	struct msm_camera_i2c_client i2c_client;
+<<<<<<< HEAD
 	enum msm_camera_device_type_t ois_device_type;
 	struct msm_sd_subdev msm_sd;
 	struct mutex *ois_mutex;
@@ -60,4 +100,33 @@ struct msm_ois_ctrl_t {
 	struct msm_ois_vreg vreg_cfg;
 };
 
+=======
+	enum msm_camera_device_type_t act_device_type;
+	struct msm_sd_subdev msm_sd;
+	struct mutex *ois_mutex;
+	struct v4l2_subdev sdev;
+	struct v4l2_subdev_ops *act_v4l2_subdev_ops;
+	
+	enum cci_i2c_master_t cci_master;
+
+	uint16_t sid_ois;
+	struct msm_ois_fn_t *ois_func_tbl;
+};
+
+
+//#define MSM_OIS_DEBUG
+#undef CDBG
+#ifdef MSM_OIS_DEBUG
+#define CDBG(fmt, args...) pr_err(fmt, ##args)
+#else
+#define CDBG(fmt, args...) pr_debug(fmt, ##args)
+#endif
+
+int msm_init_ois(enum ois_ver_t ver);
+int msm_ois_off(void);
+int msm_ois_info(struct msm_sensor_ois_info_t* info);
+int msm_ois_mode(enum ois_mode_t data);
+int msm_ois_move_lens (int16_t offset_x, int16_t offset_y);
+
+>>>>>>> 5b5616e... Add LG G3 Support
 #endif

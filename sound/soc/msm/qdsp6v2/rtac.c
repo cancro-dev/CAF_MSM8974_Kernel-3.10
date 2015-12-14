@@ -29,6 +29,7 @@
 #include <sound/apr_audio-v2.h>
 #include "q6voice.h"
 #include "msm-pcm-routing-v2.h"
+#include "audio_acdb.h"
 
 
 /* Max size of payload (buf size - apr header) */

@@ -751,9 +751,18 @@ int msm_post_event(struct v4l2_event *event, int timeout)
 	if (list_empty_careful(&cmd_ack->command_q.list)) {
 		if (!rc) {
 			pr_err("%s: Timed out\n", __func__);
+<<<<<<< HEAD
 			msm_print_event_error(event);
 			mutex_unlock(&session->lock);
 			return -ETIMEDOUT;
+=======
+			rc = -ETIMEDOUT;
+#ifdef CONFIG_MACH_LGE
+			pr_err("%s: ===== Camera Recovery Start! ===== \n", __func__);
+			dump_stack();
+			send_sig(SIGKILL, current, 0);
+#endif
+>>>>>>> 5b5616e... Add LG G3 Support
 		} else {
 			pr_err("%s: Error: No timeout but list empty!",
 					__func__);

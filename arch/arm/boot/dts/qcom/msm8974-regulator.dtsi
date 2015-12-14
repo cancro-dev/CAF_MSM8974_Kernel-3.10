@@ -70,10 +70,7 @@
 			regulator-min-microvolt = <675000>;
 			regulator-max-microvolt = <1050000>;
 			status = "okay";
-			compatible = "qcom,rpm-smd-regulator";
-			proxy-supply = <&pm8841_s1_ao>;
-			qcom,proxy-consumer-voltage = <1050000 1050000>;
-			qcom,proxy-consumer-enable;
+			compatible = "qcom,rpm-regulator-smd";
 		};
 		pm8841_s1_so: regulator-s1-so {
 			regulator-name = "8841_s1_so";
@@ -82,7 +79,7 @@
 			regulator-max-microvolt = <1050000>;
 			qcom,init-voltage = <675000>;
 			status = "okay";
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 		};
 	};
 
@@ -99,11 +96,8 @@
 			regulator-min-microvolt = <1>;
 			regulator-max-microvolt = <7>;
 			qcom,use-voltage-corner;
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 			qcom,consumer-supplies = "vdd_dig", "";
-			proxy-supply = <&pm8841_s2_corner>;
-			qcom,proxy-consumer-voltage = <7 7>;
-			qcom,proxy-consumer-enable;
 		};
 		pm8841_s2_corner_ao: regulator-s2-corner-ao {
 			regulator-name = "8841_s2_corner_ao";
@@ -111,10 +105,10 @@
 			regulator-min-microvolt = <1>;
 			regulator-max-microvolt = <7>;
 			qcom,use-voltage-corner;
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 		};
 		pm8841_s2_floor_corner: regulator-s2-floor-corner {
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 			regulator-name = "8841_s2_floor_corner";
 			qcom,set = <3>;
 			regulator-min-microvolt = <1>;
@@ -142,7 +136,7 @@
 			status = "okay";
 		};
 		pm8841_s4_corner: regulator-s4-corner {
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 			regulator-name = "8841_s4_corner";
 			qcom,set = <3>;
 			qcom,use-voltage-corner;
@@ -151,7 +145,7 @@
 			qcom,init-voltage-corner = <3>; /* SVS SOC */
 		};
 		pm8841_s4_floor_corner: regulator-s4-floor-corner {
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 			regulator-name = "8841_s4_floor_corner";
 			qcom,set = <3>;
 			regulator-min-microvolt = <1>;
@@ -294,9 +288,9 @@
 	rpm-regulator-ldoa11 {
 		status = "okay";
 		pm8941_l11: regulator-l11 {
-			regulator-min-microvolt = <1225000>;
+			regulator-min-microvolt = <1050000>;
 			regulator-max-microvolt = <1350000>;
-			qcom,init-voltage = <1300000>;
+			qcom,init-voltage = <1050000>;
 			status = "okay";
 		};
 	};
@@ -306,9 +300,6 @@
 		pm8941_l12: regulator-l12 {
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
-			qcom,init-voltage = <1800000>;
-			proxy-supply = <&pm8941_l12>;
-			qcom,proxy-consumer-enable;
 			status = "okay";
 		};
 		pm8941_l12_ao: regulator-l12-ao {
@@ -317,7 +308,7 @@
 			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1800000>;
 			status = "okay";
-			compatible = "qcom,rpm-smd-regulator";
+			compatible = "qcom,rpm-regulator-smd";
 		};
 	};
 
@@ -374,9 +365,9 @@
 	rpm-regulator-ldoa18 {
 		status = "okay";
 		pm8941_l18: regulator-l18 {
-			regulator-min-microvolt = <2850000>;
+			regulator-min-microvolt = <2700000>;
 			regulator-max-microvolt = <2850000>;
-			qcom,init-voltage = <2850000>;
+			qcom,init-voltage = <2700000>;
 			status = "okay";
 		};
 	};
@@ -474,9 +465,6 @@
 		ranges;
 		qcom,pfm-threshold = <76>;
 		qcom,use-phase-scaling-factor;
-		qcom,cores-per-phase = <1>;
-		qcom,valid-phases = <1 2 4>;
-		qcom,phase-coeff-threshold = <1000000 2000000 4000000>;
 		qcom,phase-scaling-factor-bits-pos = <16>;
 		qcom,valid-scaling-factor-versions = <0 1 0 0>;
 
@@ -494,10 +482,6 @@
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
 			qcom,cpu-num = <0>;
-			krait0_adj_reg: regulator@0 {
-				regulator-name = "krait-adjustment0";
-				qcom,coeff1-reduction = <75>;
-			};
 		};
 
 		krait1_vreg: regulator@f9098000 {
@@ -514,10 +498,6 @@
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
 			qcom,cpu-num = <1>;
-			krait1_adj_reg: regulator@0 {
-				regulator-name = "krait-adjustment1";
-				qcom,coeff1-reduction = <75>;
-			};
 		};
 
 		krait2_vreg: regulator@f90a8000 {
@@ -534,10 +514,6 @@
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
 			qcom,cpu-num = <2>;
-			krait2_adj_reg: regulator@0 {
-				regulator-name = "krait-adjustment2";
-				qcom,coeff1-reduction = <75>;
-			};
 		};
 
 		krait3_vreg: regulator@f90b8000 {
@@ -554,10 +530,6 @@
 			qcom,ldo-threshold-voltage = <850000>;
 			qcom,ldo-delta-voltage = <50000>;
 			qcom,cpu-num = <3>;
-			krait3_adj_reg: regulator@0 {
-				regulator-name = "krait-adjustment3";
-				qcom,coeff1-reduction = <75>;
-			};
 		};
 	};
 

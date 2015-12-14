@@ -264,4 +264,10 @@ config SEEMP_CORE
 	help
 		This option enables malware protection component
 		to log on-device software API activity.
+
+config VIBRATOR_PM8974_HAPTIC
+	tristate "Support for vibrator power control using pm8974"
+	help
+	  This option enables support for the vibrator power control.
+
 endmenu

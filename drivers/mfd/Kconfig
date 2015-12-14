@@ -730,6 +730,35 @@ config TPS6105X
 	  sometimes used for other things than white LEDs, and
 	  also contains a GPIO pin.
 
+config MFD_LM3631
+	tristate "TI LM3631 Backlight and Bias Power Driver"
+	depends on I2C
+	select MFD_CORE
+	select REGMAP_I2C
+	help
+	  Say yes here to enable support for TI LM3631 chip.
+	  LM3631 has 2 strings for backlight with 5 regulators for LCD bias.
+
+config MFD_TPS65132
+	bool "TPS65132 Power Management chip"
+	depends on I2C
+	select MFD_CORE
+	select REGMAP_I2C
+	help
+	  if you say yes here you get support for the TPS65132 series of
+	  Power Management chips.
+
+config MFD_MAX8925
+	bool "Maxim Semiconductor MAX8925 PMIC Support"
+	depends on I2C=y && GENERIC_HARDIRQS
+	select MFD_CORE
+	select REGULATOR_FIXED_VOLTAGE
+	help
+	  This option enables a driver for the TP61050/TPS61052
+	  high-power "white LED driver". This boost converter is
+	  sometimes used for other things than white LEDs, and
+	  also contains a GPIO pin.
+
 config TPS65010
 	tristate "TI TPS6501x Power Management chips"
 	depends on I2C && GPIOLIB
@@ -1010,6 +1039,62 @@ config MFD_ARIZONA
 	select MFD_CORE
 	bool
 
+config MFD_WL1273_CORE
+	tristate "Support for TI WL1273 FM radio."
+	depends on I2C
+	select MFD_CORE
+	default n
+	help
+	  This is the core driver for the TI WL1273 FM radio. This MFD
+	  driver connects the radio-wl1273 V4L2 module and the wl1273
+	  audio codec.
+
+config MFD_OMAP_USB_HOST
+	bool "Support OMAP USBHS core driver"
+	depends on USB_EHCI_HCD_OMAP || USB_OHCI_HCD_OMAP3
+	default y
+	help
+	  This is the core driver for the OAMP EHCI and OHCI drivers.
+	  This MFD driver does the required setup functionalities for
+	  OMAP USB Host drivers.
+
+config MFD_PM8XXX
+	tristate
+
+config MFD_PM8921_CORE
+	tristate "Qualcomm PM8921 PMIC chip"
+	depends on MSM_SSBI
+	select MFD_CORE
+	select MFD_PM8XXX
+	help
+	  If you say yes to this option, support will be included for the
+	  built-in PM8921 PMIC chip.
+
+	  This is required if your board has a PM8921 and uses its features,
+	  such as: MPPs, GPIOs, regulators, interrupts, and PWM.
+
+	  Say M here if you want to include support for PM8921 chip as a module.
+	  This will build a module called "pm8921-core".
+
+config MFD_MAX77819
+	bool "Maxim Integrated MAX77819 PMIC Support"
+	depends on I2C=y && GENERIC_HARDIRQS
+	select MFD_CORE
+	select REGMAP_I2C
+	select REGMAP_IRQ
+	default n
+	help
+	  Say yes here to support for Maxim MAX77819. This is a Power Management IC.
+	  This driver provies common support for accessing the device,
+	  additional drivers must be enabled in order to use the functionality
+	  of the device.
+
+config MFD_PM8821_CORE
+	tristate "Qualcomm PM8821 PMIC chip"
+	depends on MSM_SSBI
+	select MFD_CORE
+	bool
+
 config MFD_ARIZONA_I2C
 	tristate "Wolfson Microelectronics Arizona platform with I2C"
 	select MFD_ARIZONA
@@ -1195,3 +1280,12 @@ config VEXPRESS_CONFIG
 	help
 	  Platform configuration infrastructure for the ARM Ltd.
 	  Versatile Express.
+
+config MFD_P1_DSV
+     bool "LION_DSV Power Management chip"
+     depends on I2C
+     select MFD_CORE
+     select REGMAP_I2C
+     help
+       if you say yes here you get support for the P1_DSV series of
+       Power Management chips.
