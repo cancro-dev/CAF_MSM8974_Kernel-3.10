@@ -1,0 +1,326 @@
+cat << CTAG
+{
+    name:MISC,
+		elements:[
+		`[ -d "/sys/module/lpm_levels/system" ] && PM=/sys/module/lpm_levels/system;
+		
+		if [ -d "$PM/cpu0" ]; then
+			$BB echo '{ SPane:{
+				title:"Low Power Mode (LPM) Settings"
+			}},'
+			if [ -f "$PM/cpu0/wfi/idle_enabled" ]; then
+			C0=\`bool $PM/cpu0/wfi/idle_enabled\`;
+				$BB echo '{ SCheckBox:{
+					description:"Shallowest Sleep with instant wake up.",
+					label:"C0 (WFI)",
+					default:'$C0',
+					action:"socset '$PM'/cpu0/wfi/idle_enabled wfi"
+				}},'
+			fi
+			if [ -f "$PM/cpu0/retention/idle_enabled" ]; then
+			C1=\`bool $PM/cpu0/retention/idle_enabled\`;
+				$BB echo '{ SCheckBox:{
+					description:"Slightly deeper sleep with slight latency when waking up. (Disable this if you encounter screen flickering)",
+					label:"C1 (Retention)",
+					default:'$C1',
+					action:"socset '$PM'/cpu0/retention/idle_enabled retention"
+				}},'
+			fi
+			if [ -f "$PM/cpu0/standalone_pc/idle_enabled" ]; then
+			C2=\`bool $PM/cpu0/standalone_pc/idle_enabled\`;
+				$BB echo '{ SCheckBox:{
+					description:"Deeper sleep with longer latency when waking up.",
+					label:"C2 (Stand Alone Power Collapse)",
+					default:'$C2',
+					action:"socset '$PM'/cpu0/standalone_pc/idle_enabled standalone_pc"
+				}},'
+			fi
+			if [ -f "$PM/cpu0/pc/idle_enabled" ]; then
+			C3=\`bool $PM/cpu0/pc/idle_enabled\`;
+				$BB echo '{ SCheckBox:{
+					description:"Really deep sleep with longest latency when waking up.",
+					label:"C3 (Power Collapse)",
+					default:'$C3',
+					action:"socset '$PM'/cpu0/pc/idle_enabled pc"
+				}},'
+			fi
+		fi`
+		`if [ -f "/sys/module/state_notifier/parameters/enabled" ]; then
+			SN=\`bool /sys/module/state_notifier/parameters/enabled\`
+			$BB echo '{ SPane:{
+			title:"State Notifier"
+			}},
+				{ SCheckBox:{
+					label:"State Notifier Driver",
+					description:"State Notifier Driver is used by multiple drivers to perform functions when device suspends and resumes from deep sleep and thereby contributes to system maintenance, optimization, performance and power saving. Disable this driver only if necessary.",
+					default:'$SN',
+					action:"boolean /sys/module/state_notifier/parameters/enabled"
+				}},'
+		fi`
+	
+		`if [ -d "/sys/class/leds" ]; then
+			$BB echo '{ SPane:{
+				title:"LED Control",
+				description:"Kernel trigger for LEDs. Using this might interfere with OS level LED management and vice versa.",
+			}},'
+			if [ -f "/sys/class/leds/blue/trigger" ]; then
+				$BB echo '{ SOptionList:{
+					title:"Blue",
+					default:none,
+					action:"bracket-option /sys/class/leds/blue/trigger",
+					values:['
+						for LEDS in \`$BB cat /sys/class/leds/blue/trigger | $BB sed -e "s/\]//;s/\[//"\`; do
+							$BB echo "\"$LEDS\",";
+						done;
+					$BB echo ']
+				}},'
+			fi
+			if [ -f "/sys/class/leds/green/trigger" ]; then
+				$BB echo '{ SOptionList:{
+					title:"Green",
+					default:none,
+					action:"bracket-option /sys/class/leds/green/trigger",
+					values:['
+						for LEDS in \`$BB cat /sys/class/leds/green/trigger | $BB sed -e "s/\]//;s/\[//"\`; do
+							$BB echo "\"$LEDS\",";
+						done;
+					$BB echo ']
+				}},'
+			fi
+			if [ -f "/sys/class/leds/red/trigger" ]; then
+				$BB echo '{ SOptionList:{
+					title:"Red",
+					default:none,
+					action:"bracket-option /sys/class/leds/red/trigger",
+					values:['
+						for LEDS in \`$BB cat /sys/class/leds/red/trigger | $BB sed -e "s/\]//;s/\[//"\`; do
+							$BB echo "\"$LEDS\",";
+						done;
+					$BB echo ']
+				}},'
+			fi
+			if [ -f "/sys/class/leds/lcd-backlight/trigger" ]; then
+				$BB echo '{ SOptionList:{
+					title:"LCD Backlight",
+					default:none,
+					action:"bracket-option /sys/class/leds/lcd-backlight/trigger",
+					values:['
+						for LEDS in \`$BB cat /sys/class/leds/lcd-backlight/trigger | $BB sed -e "s/\]//;s/\[//"\`; do
+							$BB echo "\"$LEDS\",";
+						done;
+					$BB echo ']
+				}},'
+			fi
+			if [ -f "/sys/class/leds/spotlight/trigger" ]; then
+				$BB echo '{ SOptionList:{
+					title:"Spotlight",
+					default:none,
+					action:"bracket-option /sys/class/leds/spotlight/trigger",
+					values:['
+						for LEDS in \`$BB cat /sys/class/leds/spotlight/trigger | $BB sed -e "s/\]//;s/\[//"\`; do
+							$BB echo "\"$LEDS\",";
+						done;
+					$BB echo ']
+				}},'
+			fi
+		fi`
+		`if [ -f "/sys/module/wakeup/parameters/enable_si_ws" ]; then
+			WS=\`bool /sys/module/wakeup/parameters/enable_si_ws\`
+			HWS=\`bool /sys/module/wakeup/parameters/enable_msm_hsic_ws\`
+			SWS=\`bool /sys/module/smb135x_charger/parameters/use_wlock\`
+			BWS=\`bool /sys/module/wakeup/parameters/enable_bluesleep_ws\`
+			WRS=\`bool /sys/module/wakeup/parameters/enable_wlan_rx_wake_ws\`
+			WCS=\`bool /sys/module/wakeup/parameters/enable_wlan_ctrl_wake_ws\`
+			WWS=\`bool /sys/module/wakeup/parameters/enable_wlan_wake_ws\`
+				$BB echo '{ SPane:{
+					title:"Wakeup Sources",
+					description:"Disable wakeup sources to reduce wake locks. Leave them to default values if unsure.",
+				}},
+					{ SCheckBox:{
+						label:"Enable sensor_ind wakeup source",
+						default:'$WS',
+						action:"boolean /sys/module/wakeup/parameters/enable_si_ws"
+					}},
+					{ SCheckBox:{
+						label:"Enable msm_hsic_host wakeup source",
+						default:'$HWS',
+						action:"boolean /sys/module/wakeup/parameters/enable_msm_hsic_ws"
+					}},
+					{ SCheckBox:{
+						label:"Enable smb135x_charger wakeup source",
+						default:'$SWS',
+						action:"boolean /sys/module/smb135x_charger/parameters/use_wlock"
+					}},
+					{ SCheckBox:{
+						label:"Enable bluesleep wakeup source",
+						default:'$BWS',
+						action:"boolean /sys/module/wakeup/parameters/enable_bluesleep_ws"
+					}},
+					{ SCheckBox:{
+						label:"Enable wlan_rx_wake wakeup source",
+						default:'$WRS',
+						action:"boolean /sys/module/wakeup/parameters/enable_wlan_rx_wake_ws"
+					}},
+					{ SCheckBox:{
+						label:"Enable wlan_ctrl_wake wakeup source",
+						default:'$WCS',
+						action:"boolean /sys/module/wakeup/parameters/enable_wlan_ctrl_wake_ws"
+					}},
+					{ SCheckBox:{
+						label:"Enable wlan_wake wakeup source",
+						default:'$WWS',
+						action:"boolean /sys/module/wakeup/parameters/enable_wlan_wake_ws"
+					}},'
+		fi`
+		`if [ -f "/sys/kernel/sched/gentle_fair_sleepers" ]; then
+			GFS=\`$BB cat /sys/kernel/sched/gentle_fair_sleepers\`
+				$BB echo '{ SPane:{
+					title:"Gentle Fair Sleepers"
+				}},
+				{ SCheckBox:{
+						label:"Enable",
+						description:"Sleeper Fairness is a concept used by CFS which treat sleeping/waiting tasks as if they were in a run queue. This implies tasks which spend most of the time waiting for an user input and such will get a fair share of CPU when they need it. Disabling Gentle Fair Sleepers could improve UI responsiveness.",
+						default:'$GFS',
+						action:"generic /sys/kernel/sched/gentle_fair_sleepers"
+					}},'
+		fi`
+		`if [ -f "/sys/kernel/sched/arch_power_0" ]; then
+			APOWER=\`$BB cat /sys/kernel/sched/arch_power\`
+				$BB echo '{ SPane:{
+					title:"Arch Power"
+				}},
+					{ SCheckBox:{
+						label:"Enable",
+						description:"Arch Power uses arch dependent power functions to be used instead of generic high resolution timer ticks and double ticks to reflect the relative capacity of each core.",
+						default:'$APOWER',
+						action:"generic /sys/kernel/sched/arch_power"
+					}},'
+		fi`
+			{ STitleBar:{
+				title:"TCP Congestion Control"
+			}},
+				{ SOptionList:{
+					description:"Set the algorithm of internet congestion avoidance, to possibly improve speeds and load times. More info: <a href='https://en.wikipedia.org/wiki/TCP_congestion-avoidance_algorithm'>HERE</a>",
+					default:`$BB cat \`sh $DEVICE DirTCPCongestion\``,
+					action:"generic `sh $DEVICE DirTCPCongestion`",
+					values:[
+						`sh $DEVICE TCPCongestionList`
+					]
+				}},
+			`if [ -d "/sys/kernel/power_suspend" ]; then
+				$BB echo '{ SPane:{
+					title:"Power Suspend"
+				}},'
+				if [ -f "/sys/kernel/power_suspend/power_suspend_mode" ]; then
+				PSM=\`$BB cat /sys/kernel/power_suspend/power_suspend_mode\`
+					$BB echo '{ SOptionList:{
+						title:"Power Suspend Mode",
+						description:"Kernel Mode, LCD Hooks & Highest Level Hook are automatic and managed by the kernel, to manually enable or disable the Power Suspend State choose User Mode.",
+						default:'$PSM',
+						action:"generic /sys/kernel/power_suspend/power_suspend_mode",
+						values:{
+							0:"Kernel Mode", 1:"User Mode", 2:"LCD Hooks", 3:"Highest Level Hook"
+						}
+					}},'
+				fi
+				if [ -f "/sys/kernel/power_suspend/power_suspend_state" ] && [ "\`$BB grep 1.2 /sys/kernel/power_suspend/power_suspend_version\`" ]; then
+				PSS=\`$BB cat /sys/kernel/power_suspend/power_suspend_state\`
+					$BB echo '{ SCheckBox:{
+						label:"Power Suspend State",
+						description:"Kernel power management driver when screen is off. Better battery savings if enabled. Note: You can only change this setting if Power Suspend Mode is in User Mode.",
+						default:'$PSS',
+						action:"powersuspend /sys/kernel/power_suspend/power_suspend_state"
+					}},'
+				fi
+				if [ -f "/sys/kernel/power_suspend/power_suspend_state" ] && [ "\`$BB grep 1.3 /sys/kernel/power_suspend/power_suspend_version\`" ]; then
+				PSS=\`$BB cat /sys/kernel/power_suspend/power_suspend_state\`
+					$BB echo '{ SSeekBar:{
+						title:"Power Suspend State",
+						description:"Kernel power management driver when screen is off. Better battery savings if enabled. Note: You can only change this setting if Power Suspend Mode is in User Mode.",
+						min:0,
+						max:2,
+						step:1,
+						default:'$PSS',
+						action:"powersuspend /sys/kernel/power_suspend/power_suspend_state"
+					}},'
+				fi
+			fi`
+			`if [ -f "/sys/module/sync/parameters/fsync_enabled" ]; then
+			FSYNC=\`bool /sys/module/sync/parameters/fsync_enabled\`
+				$BB echo '{ SPane:{
+					title:"FSYNC"
+				}},
+					{ SCheckBox:{
+						description:"Disable the sync operations of the filesystem, great increasing speed but decreasing data integrity, also could create reboot and kernel panic.",
+						label:"Enable",
+						default:'$FSYNC',
+						action:"boolean /sys/module/sync/parameters/fsync_enabled"
+					}},'
+			fi`
+			`if [ -f "/sys/class/misc/fsynccontrol/fsync_enabled" ]; then
+			FSYNC=\`$BB cat /sys/class/misc/fsynccontrol/fsync_enabled\`
+				$BB echo '{ SPane:{
+					title:"FSYNC"
+				}},
+					{ SCheckBox:{
+						description:"Disable the sync operations of the filesystem, great increasing speed but decreasing data integrity, also could create reboot and kernel panic.",
+						label:"Enable",
+						default:'$FSYNC',
+						action:"generic /sys/class/misc/fsynccontrol/fsync_enabled"
+					}},'
+			fi`
+			`if [ -f "/sys/kernel/dyn_fsync/Dyn_fsync_active" ]; then
+			FSYNC=\`$BB cat /sys/kernel/dyn_fsync/Dyn_fsync_active\`
+				$BB echo '{ SPane:{
+					title:"Dynamic FSYNC"
+				}},
+					{ SCheckBox:{
+						description:"While screen is on, file sync is temporarily deferred. When screen is off, a flush is called to synchronize all outstanding writes.",
+						label:"Enable",
+						default:'$FSYNC',
+						action:"generic /sys/kernel/dyn_fsync/Dyn_fsync_active"
+					}},'
+			fi`			
+			`if [ -d "/sys/module/lm3697" ]; then
+				$BB echo '{ SPane:{
+					title:"Backlight Control"
+				}},'
+				if [ -f "/sys/module/lm3697/parameters/lm3697_backlight_control" ]; then
+				BL=\`bool /sys/module/lm3697/parameters/lm3697_backlight_control\`;
+					$BB echo '{ SCheckBox:{
+						label:"Enable",
+						description:"Enable/Disable backlight control.",
+						default:'$BL',
+						action:"boolean /sys/module/lm3697/parameters/lm3697_backlight_control"
+					}},'
+				fi
+
+
+				if [ -f "/sys/module/lm3697/parameters/lm3697_min_backlight" ]; then
+				BLMIN=\`$BB cat /sys/module/lm3697/parameters/lm3697_min_backlight\`
+					$BB echo '{ SSeekBar:{
+						title:"Backlight Min",
+						description:"Controls minimum backlight level.",
+						min:2,
+						max:1892,
+						step:1,
+						default:'$BLMIN',
+						action:"generic /sys/module/lm3697/parameters/lm3697_min_backlight"
+					}},'
+				fi
+				if [ -f "/sys/module/lm3697/parameters/lm3697_max_backlight" ]; then
+				BLMAX=\`$BB cat /sys/module/lm3697/parameters/lm3697_max_backlight\`;
+					$BB echo '{ SSeekBar:{
+						title:"Backlight Max",
+						description:"Controls maximum backlight level.",
+						min:2,
+						max:1892,
+						step:1,
+						default:'$BLMAX',
+						action:"generic /sys/module/lm3697/parameters/lm3697_max_backlight",
+					}},'
+				fi
+			fi`
+		]
+}
+CTAG
