@@ -204,7 +204,10 @@ static void button_pressed(struct work_struct *work)
 	struct hsd_info *hi = container_of(dwork, struct hsd_info, work_for_key_pressed);
 	struct qpnp_vadc_result result;
 	int acc_read_value = 0;
-	int i, rc;
+	int i;
+#ifdef CONFIG_LGE_PM
+	int rc;
+#endif
 	struct ear_3button_info_table *table;
 	int table_size = ARRAY_SIZE(max1462x_ear_3button_type_data);
 
@@ -212,7 +215,7 @@ static void button_pressed(struct work_struct *work)
 		HSD_ERR("button_pressed but 4 pole ear jack is plugged out already! just ignore the event.\n");
 		return;
 	}
-
+#ifdef CONFIG_LGE_PM
 	rc = qpnp_vadc_read_lge(P_MUX6_1_1,&result);
 
 	if (rc < 0) {
@@ -222,6 +225,7 @@ static void button_pressed(struct work_struct *work)
 			pr_err("button_pressed: adc read error - %d\n", rc);
 		}
 	}
+#endif
 	acc_read_value = (int)result.physical;
 	pr_info("%s: acc_read_value - %d\n", __func__, acc_read_value);
 

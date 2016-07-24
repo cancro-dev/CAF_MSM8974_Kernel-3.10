@@ -15,6 +15,7 @@ config SWITCH_GPIO
 config SWITCH_MAX1462X
 	tristate "LGE Headset detection driver(MAX14628)"
 	depends on MACH_LGE
+	depends on SENSORS_QPNP_ADC_VOLTAGE
 	default n
 	help
 	  Say Y here to enable GPIO based switch support.

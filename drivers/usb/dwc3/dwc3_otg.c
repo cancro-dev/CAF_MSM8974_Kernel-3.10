@@ -845,9 +845,8 @@ static void dwc3_otg_sm_work(struct work_struct *w)
 					work = 1;
 					break;
 				case DWC3_SDP_CHARGER:
-#ifdef CONFIG_MACH_LGE
-					dwc3_otg_set_power(phy,
-								IUNIT);
+#ifdef CONFIG_LGE_PM
+					dwc3_otg_set_power(phy, IUNIT);
 #endif
 					dwc3_otg_start_peripheral(&dotg->otg,
 									1);
