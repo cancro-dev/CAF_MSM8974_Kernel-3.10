@@ -404,7 +404,7 @@ struct qpnp_chg_chip {
 	struct work_struct		batfet_lcl_work;
 	struct qpnp_vadc_chip		*vadc_dev;
 	struct qpnp_iadc_chip		*iadc_dev;
-	struct qpnp_adc_tm_chip		*adc_tm_dev;
+	struct qpnp_adc_tm_chip	*adc_tm_dev;
 	struct mutex			jeita_configure_lock;
 	spinlock_t			usbin_health_monitor_lock;
 	struct mutex			batfet_vreg_lock;
@@ -421,27 +421,27 @@ struct qpnp_chg_chip {
 	struct power_supply		ac_psy;
 	unsigned int 			ac_online;
 	unsigned int 			current_max;
-	struct wake_lock	uevent_wake_lock;
+	struct wake_lock		uevent_wake_lock;
 	struct delayed_work		usb_valid_work;
 	struct delayed_work		boost_disable_work;
-	bool			boost_disable;
+	bool				boost_disable;
 	u8 				last_chgr_sts;
-	int 			vbatdet_lo_cnt;
-	bool			Is_first_chg_en;
-	bool 		factory_chg_disable;
+	int 				vbatdet_lo_cnt;
+	bool				Is_first_chg_en;
+	bool 				factory_chg_disable;
 #endif
 #ifdef CONFIG_LGE_PM_BATTERY_ID_CHECKER
 	int				batt_id_smem;
 #endif
 #ifdef CONFIG_LGE_CHARGER_TEMP_SCENARIO
-	struct delayed_work 	battemp_work;
+	struct delayed_work 		battemp_work;
 	struct wake_lock		lcs_wake_lock;
-	enum   lge_btm_states	btm_state;
-	int 					pseudo_ui_chg;
-	int						not_chg;
+	enum   lge_btm_states		btm_state;
+	int 				pseudo_ui_chg;
+	int				not_chg;
 #endif
 #ifdef CONFIG_LGE_THERMALE_CHG_CONTROL
-	int			chg_current_te
+	int				chg_current_te
 #endif
 };
 
@@ -3983,7 +3983,7 @@ qpnp_chg_regulator_boost_is_enabled(struct regulator_dev *rdev)
 {
 	struct qpnp_chg_chip *chip = rdev_get_drvdata(rdev);
 
-#ifdef CONFIG_MACH_LGE
+#ifdef CONFIG_LGE_PM
 	if (chip->boost_disable)
 		return 0;
 #endif

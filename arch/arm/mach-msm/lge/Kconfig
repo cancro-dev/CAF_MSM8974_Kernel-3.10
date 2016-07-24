@@ -4,6 +4,7 @@ config MACH_LGE
 menu "LGE Board Selection"
 
 source "arch/arm/mach-msm/lge/8974ac-g3/Kconfig"
+source "arch/arm/mach-msm/lge/8974-hammerhead/Kconfig"
 
 config DTS_TARGET
 	string "DTS target dir"

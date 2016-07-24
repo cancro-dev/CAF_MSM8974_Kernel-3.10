@@ -92,6 +92,15 @@ else ifneq ($(CONFIG_DTS_TARGET),"")
         dtb-$(CONFIG_MACH_MSM8974_G3_GLOBAL_COM)  += msm8974pro-ac-g3-global_com.dtb
         dtb-$(CONFIG_MACH_MSM8974_G3_CA)  += msm8974pro-g3-ca.dtb
         dtb-$(CONFIG_MACH_MSM8974_G3_CA)  += msm8974pro-ac-g3-ca.dtb
+else ifeq ($(CONFIG_MACH_MSM8974_HAMMERHEAD),y)
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-11.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-11j.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-10.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-c.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-b.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-bn.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-a.dtb
+        dtb-$(CONFIG_MACH_MSM8974_HAMMERHEAD)	+= msm8974-hammerhead-rev-f.dtb
 endif
 
 # APQ8084

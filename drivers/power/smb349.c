@@ -23,6 +23,7 @@
 #include <linux/slab.h>
 #include <linux/i2c/smb349.h>
 #include <linux/power_supply.h>
+#include <linux/qpnp/qpnp-adc.h>
 
 #define SMB349_MASK(BITS, POS)  ((unsigned char)(((1 << BITS) - 1) << POS))
 
@@ -91,6 +92,9 @@ struct smb349_struct {
 
 	struct work_struct	chg_work;
 	struct power_supply	dc_psy;
+#ifndef CONFIG_ADC_READY_CHECK_JB
+	struct qpnp_vadc_chip		*vadc_dev;
+#endif
 };
 
 struct chg_ma_limit_entry {
@@ -100,6 +104,62 @@ struct chg_ma_limit_entry {
 };
 
 static struct smb349_struct *the_smb349_chg;
+
+#ifdef CONFIG_SENSORS_QPNP_ADC_VOLTAGE
+int batt_temp_old;
+int batt_current_old;
+#endif
+
+#define DEFAULT_TEMP		250
+int smb349_get_batt_temp_origin(void)
+{
+#ifdef CONFIG_SENSORS_QPNP_ADC_VOLTAGE
+
+/* LIMIT: Include ONLY A1, B1, Vu3, Z models used MSM8974 AA/AB */
+#ifdef CONFIG_ADC_READY_CHECK_JB
+	int rc = 0;
+	struct qpnp_vadc_result results;
+
+	if(qpnp_vadc_is_ready() == 0) {
+		rc = qpnp_vadc_read_lge(LR_MUX1_BATT_THERM, &results);
+		if (rc) {
+			pr_debug("Unable to read batt temperature rc=%d\n", rc);
+			pr_debug("Report last_bat_temp %d again\n", batt_temp_old);
+			return batt_temp_old;
+		} else {
+			pr_debug("get_bat_temp %d %lld\n", results.adc_code, results.physical);
+			batt_temp_old =(int)results.physical;
+			return (int)results.physical;
+		}
+	} else {
+		pr_err("vadc is not ready yet. report default temperature\n");
+		return DEFAULT_TEMP;
+	}
+#else
+	int rc = 0;
+	struct qpnp_vadc_result results;
+
+	if (!the_smb349_chg)
+		return DEFAULT_TEMP;
+
+	rc = qpnp_vadc_read(the_smb349_chg->vadc_dev, LR_MUX1_BATT_THERM, &results);
+	if (rc) {
+		pr_debug("Unable to read batt temperature rc=%d\n", rc);
+		pr_debug("Report last_bat_temp %d again\n", batt_temp_old);
+		return batt_temp_old;
+	} else {
+		pr_debug("get_bat_temp %d %lld\n", results.adc_code, results.physical);
+		batt_temp_old =(int)results.physical;
+		return (int)results.physical;
+	}
+#endif
+#else
+	pr_err("CONFIG_SENSORS_QPNP_ADC_VOLTAGE is not defined.\n");
+	return DEFAULT_TEMP;
+#endif
+}
+EXPORT_SYMBOL(smb349_get_batt_temp_origin);
+
 
 static int smb349_read_reg(struct i2c_client *client, int reg,
 				u8 *val)
